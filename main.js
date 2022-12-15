@@ -1,5 +1,5 @@
+import gsap from "gsap";
 import * as THREE from "three";
-import "./style.css";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 /* # Creating the movie scene (STEP 1) 🎭
@@ -11,7 +11,10 @@ A `geometry` we provide is essentially just the shape. The geometry is created b
 > https://threejs.org/docs/#api/en/geometries/SphereGeometry */
 const geometry = new THREE.SphereGeometry(3, 64, 32);
 // That excludes `material` like color, light, reflection etc...
-const material = new THREE.MeshStandardMaterial({ color: "#00ff83" });
+const material = new THREE.MeshStandardMaterial({
+  color: "#00ff83",
+  roughness: 0.3,
+});
 // Lastly, the combination of geometry and material is our `mesh`:
 const mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
@@ -21,6 +24,7 @@ scene.add(mesh);
 This light can cast shadows - see PointLightShadow page for details. */
 const light = new THREE.PointLight(0xffffff, 1, 100);
 light.position.set(0, 10, 10); // this is the x, y, z position of the light
+light.intensity = 1.5;
 scene.add(light);
 
 /* # We setup the scene, but we need the camera (STEP 3) 🎥
@@ -48,7 +52,7 @@ const canvas = document.getElementById("webgl");
 /* A canvas where the renderer draws its output. Corresponds to the domElement property below. If not passed in here, a new canvas element will be created.*/
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(4);
+renderer.setPixelRatio(3);
 renderer.render(scene, camera);
 
 /* `OrbitControls` 🕹️ (STEP 6)
@@ -79,4 +83,34 @@ function animate() {
 }
 animate();
 
-// GSAP: timeline next
+/* # https://greensock.com/docs/v3/GSAP/Timeline
+A Timeline is a powerful sequencing tool that acts as a container for tweens and other timelines, making it simple to control them as a whole and precisely manage their timing. Without Timelines, building complex sequences would be far more cumbersome because you'd need to use a delay for every animation. And what if you want to `pause` the whole sequence or `restart` or `reverse` on the fly? This could become quite messy, but GSAP's Timelines make it simple: */
+const tl = gsap.timeline({ defaults: { duration: 1 } });
+tl.fromTo(mesh.scale, { z: 0, x: 0, y: 0 }, { z: 1, x: 1, y: 1 });
+tl.fromTo("nav", { y: "-100%" }, { y: "0%" });
+tl.fromTo(".title", { opacity: 0 }, { opacity: 1 });
+
+// Color animation 🎨:
+let mouseDown = false;
+let rgb = [];
+
+window.addEventListener("mousedown", () => (mouseDown = true));
+window.addEventListener("mouseup", () => (mouseDown = false));
+window.addEventListener("mousemove", (e) => {
+  if (mouseDown) {
+    // Produces a range between 0 and 255 when the mouse moves horizontally
+    rgb = [
+      Math.round((e.pageX / sizes.width) * 255),
+      Math.round((e.pageY / sizes.height) * 255),
+      150,
+    ];
+    // console.log(rgb);
+    // console.log(`rgb(${rgb.join(",")})`);
+    let changeColor = new THREE.Color(`rgb(${rgb.join(",")})`);
+    gsap.to(mesh.material.color, {
+      r: changeColor.r,
+      g: changeColor.g,
+      b: changeColor.b,
+    });
+  }
+});
